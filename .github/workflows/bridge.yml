@@ -1,0 +1,57 @@
+name: Bridge
+on:
+  workflow_dispatch:
+    inputs:
+      targetUser:
+        type: string
+        required: true
+        description: The target user to trigger the workflow
+      targetRepo:
+        type: string
+        required: true
+        description: The target repository to trigger the workflow
+      targetRepoToken:
+        type: string
+        required: true
+        description: The token to trigger the workflow
+      commit:
+        type: string
+        required: true
+        description: The commit to trigger the workflow
+      platform:
+        type: string
+        required: true
+        description: The platform to trigger the workflow
+      workflowPath:
+        type: string
+        required: true
+        description: The name of the workflow to trigger
+      bridgeId:
+        type: string
+        required: true
+        description: The id of the bridge
+
+jobs:
+  bridge:
+    name: Bridge-${{ inputs.bridgeId }}
+    timeout-minutes: 60
+    runs-on: ${{ inputs.platform }}
+    steps:
+      - name: Checkout Code and Submodules
+        uses: actions/checkout@v4
+        with:
+          token: ${{ inputs.targetRepoToken }}
+          repository: ${{ inputs.targetUser }}/${{ inputs.targetRepo }}
+          ref: ${{ inputs.commit }}
+          submodules: true
+
+      - name: Setup Environment
+        run: |
+          brew install mise
+          brew install act
+          mise install
+
+      # run target workflow using act and using local machine as the runner
+      - name: ${{ inputs.bridgeId }}
+        run: |
+          act -P ${{ inputs.platform }}=-self-hosted -W ${{ inputs.workflowPath }}
